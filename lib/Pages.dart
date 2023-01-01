@@ -4,7 +4,6 @@ import 'package:blood_bank/screens/blood_request.dart';
 import 'package:blood_bank/screens/donor_profile.dart';
 import 'package:blood_bank/screens/donor_screen.dart';
 import 'package:blood_bank/screens/home_screen.dart';
-import 'package:blood_bank/screens/my_requests.dart';
 import 'package:blood_bank/screens/profile.dart';
 import 'package:blood_bank/screens/receiver_location.dart';
 import 'package:blood_bank/screens/signin_screen.dart';
@@ -26,7 +25,6 @@ class Routers{
   static const String REQUEST_SCREEN = '/request_screen';
   static const String RECEIVER_LOCATION_SCREEN = '/receiver_location_screen';
   static const String ALL_REQUESTS = '/all_requests';
-  static const String MY_REQUEST = '/my_request';
 
 
   static Route<dynamic> generateRoutes(RouteSettings settings){
@@ -63,9 +61,6 @@ class Routers{
         break;
       case ALL_REQUESTS:
         return MaterialPageRoute(settings: settings,builder: (_) => AllRequests());
-        break;
-      case MY_REQUEST:
-        return MaterialPageRoute(settings: settings,builder: (_) => MyRequests());
         break;
       default:
         return MaterialPageRoute(builder: (_)=> MaterialApp(home: Scaffold(body: Center(child: Text('Not Routes Define'),),),));

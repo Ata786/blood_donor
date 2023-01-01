@@ -17,7 +17,6 @@ pragma solidity >=0.5.0 <=0.8.17;
         string reason;
         string bloodGroup;
         string hospitalAddress;
-        uint date;
     }
 
 contract Donation{
@@ -73,8 +72,7 @@ contract Donation{
         contactNum: number,
         reason: reason,
         bloodGroup: bloodGroup,
-        hospitalAddress: hospitalName,
-        date: block.timestamp
+        hospitalAddress: hospitalName
         });
         _requestId[id].push(_request);
         request.push(_request);

@@ -20,7 +20,6 @@ final passwordProvider = StateNotifierProvider<PasswordProvider,LoginState>((ref
 void signUpUser(File image,String name,String email,String password,String type,String number,String bloodGroup,BuildContext context,WidgetRef ref,Web3Client web3client)async{
 
   // User user = User(image: image,name: name,email: email,password: password,type: type);
-
   var stream = new http.ByteStream(image.openRead());
   stream.cast();
   // get file length
@@ -30,6 +29,8 @@ void signUpUser(File image,String name,String email,String password,String type,
   request.fields['name'] = name;
   request.fields['email'] = email;
   request.fields['password'] = password;
+  request.fields['number'] = number;
+  request.fields['bloodGroup'] = bloodGroup;
   request.fields['type'] = type;
   
   // var multipartFile = await http.MultipartFile.fromPath('image', image!);
@@ -44,9 +45,9 @@ void signUpUser(File image,String name,String email,String password,String type,
     final data = await response.stream.bytesToString();
     Map<String,dynamic> mapData = jsonDecode(data);
     User user = User.fromJson(mapData);
-    User userObj = User(sId: user.sId,name: user.name,email: user.email,image: user.image,type: user.type,isLogin: true);
+    User userObj = User(sId: user.sId,name: user.name,email: user.email,image: user.image,type: user.type,isLogin: true,bloodGroup: user.bloodGroup,number: user.number);
 
-    setUserData(userObj,number,bloodGroup,context,ref,web3client);
+    setUserData(userObj,context,ref,web3client);
 
   }else if(response.statusCode == 409){
     ref.read(existProvider.notifier).setValue('User Already Exist');
@@ -56,7 +57,7 @@ void signUpUser(File image,String name,String email,String password,String type,
 
 }
 
-void setUserData(User user,String number,String bloodGroup,BuildContext context,WidgetRef ref,Web3Client web3client)async{
+void setUserData(User user,BuildContext context,WidgetRef ref,Web3Client web3client)async{
 
 
   SharedPreferences preferences = await SharedPreferences.getInstance();
@@ -70,10 +71,13 @@ void setUserData(User user,String number,String bloodGroup,BuildContext context,
   ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
   if(user.type == 'Donor'){
-    Navigator.pushNamedAndRemoveUntil(context, Routers.HOME_SCREEN, (route) => false);
+    setUser(0, user.sId!, user.name!, user.email!, user.number!, user.bloodGroup!, web3client).then((value){
+      Navigator.pushNamedAndRemoveUntil(context, Routers.HOME_SCREEN, (route) => false);
+    });
   }else if(user.type == 'Receiver'){
-     setUser(1, user.sId!, user.name!, user.email!, number, bloodGroup, web3client);
-     Navigator.pushNamedAndRemoveUntil(context, Routers.RECEIVER_SCREEN, (route) => false);
+     setUser(1, user.sId!, user.name!, user.email!, user.number!, user.bloodGroup!, web3client).then((value){
+       Navigator.pushNamedAndRemoveUntil(context, Routers.RECEIVER_SCREEN, (route) => false);
+     });
   }else{
     print('no');
   }
@@ -96,7 +100,7 @@ void loginUser(String email,String password,String type,WidgetRef ref,BuildConte
 
     Map<String,dynamic> data = jsonDecode(response.body);
     User user = User.fromJson(data);
-    User userObj = User(sId: user.sId,name: user.name,email: user.email,image: user.image,type: user.type,isLogin: true);
+    User userObj = User(sId: user.sId,name: user.name,email: user.email,image: user.image,type: user.type,isLogin: true,number: user.number,bloodGroup: user.bloodGroup);
 
     SharedPreferences shared = await SharedPreferences.getInstance();
     Map<String,dynamic> userJson = userObj.toJson();

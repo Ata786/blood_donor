@@ -24,14 +24,22 @@ import 'package:web3dart/web3dart.dart';
      return result;
   }
 
-  void setUser(int type,String _id,String _name,String _email,String contact,String _bloodGroup,Web3Client web3client)async{
+  Future setUser(int type,String _id,String _name,String _email,String contact,String _bloodGroup,Web3Client web3client)async{
       await functionCall('setUser', web3client, PRIVATE_KEY,
           [BigInt.from(type),_id,_name,_email,contact,_bloodGroup]);
   }
 
-void setRequest(String id,String name,String number,String reason,String bloodGroup,String hospitalName,Web3Client web3client)async{
+Future setRequest(String id,String name,String number,String reason,String bloodGroup,String hospitalName,Web3Client web3client)async{
   await functionCall('setRequest', web3client, PRIVATE_KEY,
       [id,name,number,reason,bloodGroup,hospitalName]);
+}
+
+Future setAvaibility(String donorId,Web3Client web3client)async{
+  await functionCall('setAvaibility', web3client, PRIVATE_KEY,[donorId]);
+}
+
+Future removeAvailbility(String donorId,Web3Client web3client)async{
+  await functionCall('removeAvailbility', web3client, PRIVATE_KEY,[donorId]);
 }
 
   Future getFunction(String functionName,Web3Client web3client,List<dynamic> args)async{

@@ -1,10 +1,10 @@
 class User{
 
-  String? sId,image,name,email,password,bloodGroup,address,type;
+  String? sId,image,name,email,password,bloodGroup,number,type;
   bool? isLogin;
   double? latitude,longitude;
 
-  User({this.sId,this.image,this.name,this.email,this.password,this.bloodGroup,this.latitude,this.longitude,this.address,this.type,this.isLogin});
+  User({this.sId,this.image,this.name,this.email,this.password,this.bloodGroup,this.latitude,this.longitude,this.number,this.type,this.isLogin});
 
   factory User.fromJson(Map<String,dynamic> map){
     return User(
@@ -16,7 +16,7 @@ class User{
         bloodGroup: map['bloodGroup'],
         latitude: map['latitude'],
         longitude: map['longitude'],
-        address: map['address'],
+        number: map['number'],
         type: map['type'],
         isLogin: map['isLogin']
     );
@@ -32,7 +32,7 @@ class User{
       'bloodGroup': this.bloodGroup,
       'latitude': this.latitude,
       'longitude': this.longitude,
-      'address': this.address,
+      'number': this.number,
       'type': this.type,
       'isLogin': this.isLogin
     };

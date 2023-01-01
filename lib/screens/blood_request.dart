@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:blood_bank/colors.dart';
+import 'package:blood_bank/logic/snapshot_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,7 +21,6 @@ class RequestScreen extends StatefulWidget {
 class _RequestScreenState extends State<RequestScreen> {
 
   TextEditingController nameController = TextEditingController();
-  TextEditingController locationController = TextEditingController();
   TextEditingController reasonController = TextEditingController();
 
   List<String> menuItems = ['Select Group','A+','A-','B+','B-','O+','O-','AB+','AB-'];
@@ -28,6 +29,8 @@ class _RequestScreenState extends State<RequestScreen> {
   String? receiverId,contactNumber;
   Map<String,dynamic> location = {};
   String? lat;
+  File? locationFile;
+  String? userId;
 
   Client? httpClient;
   Web3Client? web3client;
@@ -97,7 +100,6 @@ class _RequestScreenState extends State<RequestScreen> {
                           Text('At which hospital you need blood?',style: TextStyle(fontSize: myWidth/20),),
                           SizedBox(height: myHeight/100),
                           TextField(
-                            controller: locationController,
                             readOnly: true,
                             decoration: InputDecoration(
                                 hintText: data,
@@ -114,6 +116,8 @@ class _RequestScreenState extends State<RequestScreen> {
                                     onTap: ()async{
                                       final dynamic response = await Navigator.of(context).pushNamed(Routers.RECEIVER_LOCATION_SCREEN);
                                       lat = response['address'];
+                                      userId = response['id'];
+                                      locationFile = response['screenShot'];
                                     },
                                     child: Text('Get place Location'))
                               ],
@@ -189,7 +193,11 @@ class _RequestScreenState extends State<RequestScreen> {
                       side: BorderSide(color:Color(CustomColors.PRIMARY_COLOR)),
                     ),
                     onPressed: ()async{
-                      setRequest(receiverId!, nameController.text, contactNumber!, reasonController.text, itemValue, locationController.text, web3client!);
+                      uploadSnapShot(userId!, locationFile!, context).then((value){
+                        setRequest(receiverId!,nameController.text,contactNumber!,reasonController.text,itemValue,lat!,web3client!).then((value){
+                          Navigator.pushReplacementNamed(context, Routers.ALL_REQUESTS);
+                        });
+                      });
                     },
                       child: Text('Send Request',style: TextStyle(color: Color(CustomColors.PRIMARY_COLOR)),),),
                 )
@@ -215,15 +223,9 @@ class _RequestScreenState extends State<RequestScreen> {
     Map<String,dynamic> userMap = jsonDecode(user!);
     User userObj = User.fromJson(userMap);
 
-    final data = await getFunction('getReceiver', web3client!, [userObj.sId]);
-    receiverId = data[0][0];
-    contactNumber = data[0][3];
-
-    List<dynamic> requestList = await getFunction('getUserRequests', web3client!, [receiverId]);
-    print('request is ${requestList[0]}');
-
+    receiverId = userObj.sId;
+    contactNumber = userObj.number;
 
   }
-
 
 }

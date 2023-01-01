@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../model/User.dart';
+import 'package:uuid/uuid.dart';
 
 class ReceiverLocation extends StatefulWidget {
   const ReceiverLocation({Key? key}) : super(key: key);
@@ -116,17 +117,17 @@ class _ReceiverLocationState extends State<ReceiverLocation> {
             lon = locations.first.longitude;
             GoogleMapController controller = await mapController.future;
 
-            controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: LatLng(lat!,lon!),zoom: 15.0))).then((value){
+            controller.animateCamera(CameraUpdate.newCameraPosition(
+                CameraPosition(target: LatLng(lat!,lon!),zoom: 15.0))).then((value){
               Future.delayed(Duration(seconds: 2)).then((value)async{
                 Uint8List? uin8List = await controller.takeSnapshot();
                 final tempDir = await getTemporaryDirectory();
-                File file = await File('${tempDir.path}/image.png').create();
+                File file = await File('${tempDir.path}/image.jpg').create();
                 file.writeAsBytesSync(uin8List!);
 
                 testCompressAndGetFile(file, file.path).then((compressFile){
                   getUserId().then((value){
-                    uploadSnapShot(value.sId!,compressFile,context,placeController).then((value){
-                    });
+                    Navigator.pop(context,{'id': value.sId,'address': placeController.text,'screenShot': compressFile});
                   });
                 });
 
@@ -135,6 +136,12 @@ class _ReceiverLocationState extends State<ReceiverLocation> {
           }
 
           setState(() {
+            _markers.add(Marker(
+                markerId: MarkerId('defaulstId'),
+                icon: BitmapDescriptor.defaultMarker,
+                position: LatLng(lat!,lon!),
+                infoWindow: InfoWindow(title: placeController.text)
+            ));
           });
 
         },
@@ -167,13 +174,16 @@ class _ReceiverLocationState extends State<ReceiverLocation> {
 
   Future<File> testCompressAndGetFile(File file, String targetPath) async {
 
+    var uuid = Uuid();
+    String randomId = uuid.v4();
+
     final imageUri = Uri.parse(file.path);
-    final String outputUri = imageUri.resolve('./output.webp').toString();
+    final String outputUri = imageUri.resolve('./${randomId}.jpg').toString();
 
     var result = await FlutterImageCompress.compressAndGetFile(
-      file.absolute.path, outputUri,
+      file.path, outputUri,
       quality: 20,
-      format: CompressFormat.webp
+      format: CompressFormat.jpeg
     );
 
     return result!;

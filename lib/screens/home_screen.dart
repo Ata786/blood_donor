@@ -1,9 +1,13 @@
 import 'dart:convert';
-
+import 'package:blood_bank/logic/your_location.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
 import '../Pages.dart';
 import '../colors.dart';
+import '../model/User.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -51,16 +55,57 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(25.0),
-                              child: CircleAvatar(child: Image.asset('assets/man.png',height: myHeight / 10,width: myWidth / 10,),radius: myWidth / 12,backgroundColor: Colors.white,),
+                              child: FutureBuilder<User>(
+                                future: getUser(),
+                                builder: (context,snapshot){
+                                  if(snapshot.hasData){
+                                    return CircleAvatar(
+                                      backgroundImage: NetworkImage('${snapshot.data!.image}'),radius: myWidth / 12,backgroundColor: Colors.white,);
+                                  }else{
+                                  return CircleAvatar(
+                                  child: Image.asset('assets/man.png'),
+                                  radius: myWidth / 12,backgroundColor: Colors.white,);
+                                  }
+                                },
+                              )
                             ),
                           ),
                           SizedBox(width: myWidth / 20,),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Ata-Ur-Rehman',style: TextStyle(color: Colors.white,fontSize: myWidth / 20),),
-                              Text('Ahmed Pur East',style: TextStyle(color: Colors.white,fontSize: myWidth / 35),),
-                            ],
+                          FutureBuilder<User>(
+                            future: getUser(),
+                              builder: (context,snapshot){
+                                if(snapshot.hasData){
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${snapshot.data!.name}',style: TextStyle(color: Colors.white,fontSize: myWidth / 20),),
+                                      Row(children: [
+                                        Icon(Icons.location_on,color: Colors.white,size: myWidth/35,),
+                                        FutureBuilder<Placemark>(
+                                          future: getLocation(),
+                                            builder: (context,snapshot){
+                                              return Text('${snapshot.data!.locality}',style: TextStyle(color: Colors.white,fontSize: myWidth / 35),);
+                                      },)
+                                      ],)
+                                    ],
+                                  );
+                                }else{
+                                  return Shimmer.fromColors(
+                                    baseColor: Colors.grey,
+                                    highlightColor: Colors.white,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Your Name',style: TextStyle(color: Colors.white,fontSize: myWidth / 20),),
+                                        Row(children: [
+                                          Icon(Icons.location_on,color: Colors.white,size: myWidth/35,),
+                                          Text('Location',style: TextStyle(color: Colors.white,fontSize: myWidth / 35),),
+                                        ],)
+                                      ],
+                                    ),
+                                  );
+                                }
+                              }
                           )
                         ],
                       ),
@@ -159,7 +204,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                           children: [
                                             Image.asset('assets/blood_group.png',scale: (myWidth/4) / 25,),
-                                            Text('B+',style: TextStyle(color: Color(CustomColors.PRIMARY_COLOR)),),
+                                            FutureBuilder<User>(
+                                              future: getUser(),
+                                                builder: (context,snapshot){
+                                                  if(snapshot.hasData){
+                                                    return Text('${snapshot.data!.bloodGroup}',style: TextStyle(color: Color(CustomColors.PRIMARY_COLOR)),);
+                                                  }else{
+                                                    return Shimmer.fromColors(child: Text('Blood Group',style: TextStyle(color: Color(CustomColors.PRIMARY_COLOR)),),
+                                                        baseColor: Colors.grey, highlightColor: Colors.white);
+                                                  }
+                                                },
+                                                ),
                                             Text('Blood Group',style: TextStyle(color: Colors.grey),)
                                           ],
                                         ),
@@ -348,10 +403,38 @@ class _HomeScreenState extends State<HomeScreen> {
              Divider(),
              InkWell(child: ListTile(title: Text('Blood Request'),leading: Icon(Icons.bloodtype_outlined,color: Color(CustomColors.PRIMARY_COLOR)),)),
              Divider(),
+             InkWell(
+                 onTap: ()async{
+                   SharedPreferences shared = await SharedPreferences.getInstance();
+                   shared.remove('user');
+                   Navigator.pushNamedAndRemoveUntil(context, Routers.SIGN_IN_SCREEN, (route) => false);
+                 },
+                 child: ListTile(title: Text('Log Out'),leading: Icon(Icons.logout,color: Color(CustomColors.PRIMARY_COLOR)),)),
+             Divider(),
            ],
          )
        ),
       ),
     );
   }
+
+  Future<User> getUser()async{
+
+    SharedPreferences shared = await SharedPreferences.getInstance();
+    String? user = shared.getString('user');
+    Map<String,dynamic> userMap = jsonDecode(user!);
+    User userObj = User.fromJson(userMap);
+
+    return userObj;
+  }
+
+  Future<Placemark> getLocation()async{
+
+    Position position = await checkLocation();
+    List<Placemark> placeMark = await placemarkFromCoordinates(position.latitude, position.longitude);
+
+    return placeMark[0];
+  }
+
+
 }
