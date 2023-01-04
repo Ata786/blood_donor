@@ -12,6 +12,7 @@ pragma solidity >=0.5.0 <=0.8.17;
 
     struct Request{
         string receiverId;
+        string receiverName;
         string patientName;
         string contactNum;
         string reason;
@@ -19,7 +20,7 @@ pragma solidity >=0.5.0 <=0.8.17;
         string hospitalAddress;
     }
 
-contract Donation{
+contract Blood{
 
     UserStruct [] receiver;
     UserStruct [] donor;
@@ -66,8 +67,10 @@ contract Donation{
     }
 
     function setRequest(string memory id,string memory name,string memory number,string memory reason,string memory bloodGroup,string memory hospitalName)public{
+        string memory receiverName = getReceiver(id).name;
         Request memory _request = Request({
         receiverId: id,
+        receiverName: receiverName,
         patientName: name,
         contactNum: number,
         reason: reason,
@@ -90,7 +93,8 @@ contract Donation{
 
     function setAvaibility(string memory donorId)public{
         uint index = availableDonors.length;
-        availableDonors.push(getDonor(donorId));
+        UserStruct memory donorData = donor[_donorId[donorId]];
+        availableDonors.push(donorData);
         _avaibilityId[donorId] = index;
     }
 

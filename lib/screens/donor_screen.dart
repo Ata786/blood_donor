@@ -1,4 +1,11 @@
+import 'dart:convert';
+
+import 'package:blood_bank/logic/contract_linking.dart';
+import 'package:blood_bank/logic/snapshot_image.dart';
+import 'package:blood_bank/model/Request.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:web3dart/web3dart.dart';
 import '../colors.dart';
 
 class DonorScreen extends StatefulWidget {
@@ -9,6 +16,20 @@ class DonorScreen extends StatefulWidget {
 }
 
 class _DonorScreenState extends State<DonorScreen> {
+
+  Client? httpClient;
+  Web3Client? web3client;
+  List<SnapShot>? imagesList;
+
+  String rpcUrl = 'http://192.168.100.36:7545';
+
+  @override
+  void initState() {
+    httpClient = Client();
+    web3client = Web3Client(rpcUrl, httpClient!);
+    // TODO: implement initState
+    super.initState();
+  }
 
 
   @override
@@ -77,45 +98,55 @@ class _DonorScreenState extends State<DonorScreen> {
                         child: Container(
                           height: myHeight/1.9,
                           width: myWidth,
-                          child: ListView.builder(
-                            itemCount: 10,
-                              itemBuilder: (context,index){
-                                return Container(
-                                  margin: EdgeInsets.only(top: (myHeight/1.9)/100,left: myWidth/20,right: myWidth/20),
-                                  height: (myHeight/1.9)/5,
-                                  child: Card(
-                                    color: Colors.white,
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(5.0)
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Container(
-                                          margin:EdgeInsets.only(left: myWidth/20),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(25.0),
-                                            child: CircleAvatar(child: Image.asset('assets/man.png',scale: myWidth/120,),radius: myWidth / 14,backgroundColor: Colors.green,),
+                          child: FutureBuilder<dynamic>(
+                            future: getDonors(),
+                            builder: (context,snapshot){
+                              if(snapshot.hasData){
+                                return  ListView.builder(
+                                    itemCount: snapshot.data.length,
+                                    itemBuilder: (context,index){
+                                      return Container(
+                                        margin: EdgeInsets.only(top: (myHeight/1.9)/100,left: myWidth/20,right: myWidth/20),
+                                        height: (myHeight/1.9)/5,
+                                        child: Card(
+                                          color: Colors.white,
+                                          elevation: 2,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(5.0)
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Container(
+                                                margin:EdgeInsets.only(left: myWidth/20),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(25.0),
+                                                  child: CircleAvatar(
+                                                  backgroundImage: NetworkImage('${imagesList![index].screenShot}'),radius: myWidth / 14,backgroundColor: Colors.green,),
+                                                ),
+                                              ),
+                                              Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text('${snapshot.data[index][1]}',style: TextStyle(fontSize: myWidth/18),),
+                                                  Text('${snapshot.data[index][2]}',style: TextStyle(fontSize: myWidth/25),),
+                                                ],
+                                              ),
+                                              Padding(
+                                                padding: EdgeInsets.only(right:myWidth/20 ),
+                                                child: Text('${snapshot.data[index][4]}',style: TextStyle(fontSize: (myWidth / 1.1)/30,color: Color(CustomColors.PRIMARY_COLOR))),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('Ata-Ur-Rehman',style: TextStyle(fontSize: myWidth/18),),
-                                            Text('Ahmed Pur East',style: TextStyle(fontSize: myWidth/25),),
-                                          ],
-                                        ),
-                                        Padding(
-                                          padding: EdgeInsets.only(right:myWidth/20 ),
-                                          child: Text('AB+',style: TextStyle(fontSize: (myWidth / 1.1)/30,color: Color(CustomColors.PRIMARY_COLOR))),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }),
+                                      );
+                                    });
+                              }else{
+                                return Center(child: CircularProgressIndicator(),);
+                              }
+                            },
+                          ),
                         ),
                       )
                     ],
@@ -128,4 +159,14 @@ class _DonorScreenState extends State<DonorScreen> {
       ),
     );
   }
+
+  Future<List<dynamic>> getDonors()async{
+    List<dynamic> donors = await getFunction('getAllDonors', web3client!, []);
+    var response = await getDonorImages(context);
+    List<dynamic> images = jsonDecode(response);
+    imagesList = images.map((e) => SnapShot(id: '', screenShot: e['image'], location: '', reason: '', date: '')).toList();
+    return donors[0];
+  }
+
+
 }

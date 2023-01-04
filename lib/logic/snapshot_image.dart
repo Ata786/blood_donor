@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -39,6 +40,109 @@ Future getUserSnapShot(String userId,BuildContext context)async{
 
 }
 
+Future getAllSnapShots(BuildContext context)async{
+  var response = await http.get(Uri.parse('http://192.168.100.36:5000/api/fetch/screenshots'));
+
+  if(response.statusCode == 200){
+    return response.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('error is ${response.statusCode}')));
+  }
+
+}
+
+Future getDonorImages(BuildContext context)async{
+
+  var response = await http.get(Uri.parse('http://192.168.100.36:5000/api/donorImages'));
+
+  if(response.statusCode == 200){
+    return response.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('error is ${response.statusCode}')));
+  }
+
+}
+
+Future uploadDonorImages(String donorId,BuildContext context)async {
+
+  var res = await http.post(Uri.parse('http://192.168.100.36:5000/api/activeDonors'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, String>{
+      'id': donorId,
+    }),
+  );
+
+  if(res.statusCode == 200){
+    return res.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${res.statusCode}')));
+  }
+
+}
+
+Future getActiveDonorImages(BuildContext context)async{
+  
+  var response = await http.get(Uri.parse('http://192.168.100.36:5000/api/getActiveDonors'));
+
+  if (response.statusCode == 200) {
+    return response.body;
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${response.statusCode}')));
+  }
+  
+}
+
+Future deleteActiveDonor(String donorId,BuildContext context)async{
+
+  var response = await http.delete(Uri.parse('http://192.168.100.36:5000/api/deleteDonorImage/${donorId}'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },);
+
+  if(response.statusCode == 200){
+    return response.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${response.statusCode}')));
+  }
+}
+
+Future uploadRequestImages(String receiverId,BuildContext context)async{
+
+  var res = await http.post(Uri.parse('http://192.168.100.36:5000/api/requestImages'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, String>{
+      'id': receiverId,
+    }),
+  );
+
+  if(res.statusCode == 200){
+    return res.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${res.statusCode}')));
+  }
+
+}
+
+Future getRequestImages(BuildContext context)async{
+
+  var response = await http.get(Uri.parse('http://192.168.100.36:5000/api/getRequestImage'));
+
+  if (response.statusCode == 200) {
+    return response.body;
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${response.statusCode}')));
+  }
+
+}
 
 String getCurrentDate() {
   var date = DateTime.now().toString();

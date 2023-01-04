@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'package:blood_bank/logic/snapshot_image.dart';
 import 'package:blood_bank/logic/your_location.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:web3dart/web3dart.dart';
 import '../Pages.dart';
 import '../colors.dart';
+import '../logic/contract_linking.dart';
+import '../model/Request.dart';
 import '../model/User.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,14 +23,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
 
+  Client? httpClient;
+  Web3Client? web3client;
+
+  String rpcUrl = 'http://192.168.100.36:7545';
+  List<SnapShot>? images;
+
   @override
   void initState() {
+    httpClient = Client();
+    web3client = Web3Client(rpcUrl, httpClient!);
     // TODO: implement initState
     super.initState();
   }
 
-
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context) {
     double myHeight = MediaQuery.of(context).size.height;
@@ -84,7 +97,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                         FutureBuilder<Placemark>(
                                           future: getLocation(),
                                             builder: (context,snapshot){
-                                              return Text('${snapshot.data!.locality}',style: TextStyle(color: Colors.white,fontSize: myWidth / 35),);
+                                              if(snapshot.hasData){
+                                                return Text('${snapshot.data!.locality}',style: TextStyle(color: Colors.white,fontSize: myWidth / 35),);
+                                              }else{
+                                                return Shimmer.fromColors(
+                                                  baseColor: Colors.grey,
+                                                    highlightColor: Colors.white,
+                                                    child: Text('Your Location',style: TextStyle(color: Colors.white,fontSize: myWidth / 35),));
+                                              }
                                       },)
                                       ],)
                                     ],
@@ -125,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SliverToBoxAdapter(
                     child:Container(
-                      height: myHeight * 1.1,
+                      height: myHeight/1.2,
                       width: myWidth,
                       child: Stack(
                         children: [
@@ -283,21 +303,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     ),
                                   ),
-                                  Container(
-                                    height: (myHeight / 8) / 1.1,
-                                    width: myWidth / 4,
-                                    child: Card(
-                                      color: Colors.white,
-                                      elevation: 2,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(5.0)
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          Image.asset('assets/pulse.png',scale: (myWidth/4) / 25,),
-                                          Text('Requests',)
-                                        ],
+                                  InkWell(
+                                    onTap: (){
+                                      Navigator.pushNamed(context, Routers.DONOR_REQUESTS);
+                                    },
+                                    child: Container(
+                                      height: (myHeight / 8) / 1.1,
+                                      width: myWidth / 4,
+                                      child: Card(
+                                        color: Colors.white,
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(5.0)
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            Image.asset('assets/pulse.png',scale: (myWidth/4) / 25,),
+                                            Text('Requests',)
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -308,76 +333,83 @@ class _HomeScreenState extends State<HomeScreen> {
                           Positioned(
                               left: myWidth / 20,
                               top: myHeight / 1.6,
-                              child: Text('Active Donors',style: TextStyle(fontSize: myHeight / 40),)),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            top: myHeight / 1.5,
-                            child: Container(
-                              height: myHeight / 2.2,
-                              width: myWidth,
-                              child: ListView.builder(
-                                physics: NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                  itemCount: 10,
-                                  itemBuilder: (context,index){
-                                return InkWell(
-                                  onTap: (){
-                                    Navigator.pushNamed(context, Routers.DONOR_PROFILE);
-                                  },
-                                  child: Container(
-                                    height: (myHeight/2.2) / 4,
-                                    width: myWidth,
-                                    child: Card(
-                                      child: Stack(
-                                        children: [
-                                          Center(
-                                            child: Container(
-                                              margin: EdgeInsets.only(left: myWidth / 9,right: myWidth / 25),
-                                              height: ((myHeight/2.2) / 4) / 1.5,
-                                              width:myWidth / 1.1,
-                                              child: Card(
-                                                elevation: 2,
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Padding(
-                                                      padding: EdgeInsets.only(left:(myWidth / 1.1)/9 ),
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text('Ata-Ur-Rehman',style: TextStyle(fontSize:(myWidth / 1.1)/15 ),),
-                                                          Text('Ahmed Pur East',style: TextStyle(fontSize: (myWidth / 1.1)/30,)),
-                                                        ],
+                              child: Container(
+                                height: myHeight/3,
+                                width: myWidth,
+                                child: Column(
+                                  children: [
+                                    Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text('Active Donors',style: TextStyle(fontSize: myHeight / 40),)),
+                                    Expanded(
+                                        child: StreamBuilder(
+                                          stream: getAvailableDonors(),
+                                          builder: (context,snapshot){
+                                            if(snapshot.hasData){
+                                              return ListView.builder(
+                                                  shrinkWrap: true,
+                                                  itemCount: snapshot.data.length,
+                                                  itemBuilder: (context,index){
+                                                    return Container(
+                                                      height: (myHeight/2.2) / 4,
+                                                      width: myWidth,
+                                                      child: Card(
+                                                        child: Stack(
+                                                          children: [
+                                                            Center(
+                                                              child: Container(
+                                                                margin: EdgeInsets.only(left: myWidth / 9,right: myWidth / 25),
+                                                                height: ((myHeight/2.2) / 4) / 1.5,
+                                                                width:myWidth / 1.1,
+                                                                child: Card(
+                                                                    elevation: 2,
+                                                                    child: Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                      children: [
+                                                                        Padding(
+                                                                          padding: EdgeInsets.only(left:(myWidth / 1.1)/9 ),
+                                                                          child: Column(
+                                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                                            children: [
+                                                                              Text('${snapshot.data[index][1]}',style: TextStyle(fontSize:(myWidth / 1.1)/15 ),),
+                                                                              Text('${snapshot.data[index][2]}',style: TextStyle(fontSize: (myWidth / 1.1)/30,)),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                        Padding(
+                                                                          padding: EdgeInsets.only(right:(myWidth / 1.1)/20 ),
+                                                                          child: Text('${snapshot.data[index][4]}',style: TextStyle(fontSize: (myWidth / 1.1)/30,color: Color(CustomColors.PRIMARY_COLOR))),
+                                                                        ),
+                                                                      ],
+                                                                    )
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Positioned(
+                                                              top: ((myHeight/2.2) /4) /4.5,
+                                                              left: myWidth / 20,
+                                                              child: Container(
+                                                                child: ClipRRect(
+                                                                  borderRadius: BorderRadius.circular(25.0),
+                                                                  child: CircleAvatar(backgroundImage: NetworkImage('${images![index].screenShot}') ,radius: myWidth / 17,backgroundColor: Colors.green,),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(right:(myWidth / 1.1)/20 ),
-                                                      child: Text('AB+',style: TextStyle(fontSize: (myWidth / 1.1)/30,color: Color(CustomColors.PRIMARY_COLOR))),
-                                                    ),
-                                                  ],
-                                                )
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            top: ((myHeight/2.2) /4) /4.5,
-                                            left: myWidth / 20,
-                                            child: Container(
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(25.0),
-                                                child: CircleAvatar(child: Image.asset('assets/man.png',height: myHeight / 30,width: myWidth / 30,),radius: myWidth / 17,backgroundColor: Colors.green,),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                                    );
+                                                  });
+                                            }else{
+                                              return Center(child: CircularProgressIndicator(color: Color(CustomColors.PRIMARY_COLOR),));
+                                            }
+                                          },
+                                        ),
                                     ),
-                                  ),
-                                );
-                              }),
-                            ),
-                          )
+                                  ],
+                                ),
+                              )
+                          ),
                         ],
                       ),
                     )
@@ -397,11 +429,20 @@ class _HomeScreenState extends State<HomeScreen> {
              InkWell(
                  onTap: (){
                    Navigator.pop(context);
-                   Navigator.pushNamed(context,Routers.PROFILE_SCREEN);
+                   Navigator.pushNamed(context,Routers.PROFILE_SCREEN).then((value){
+                     setState(() {
+
+                     });
+                   });
                  },
                  child: ListTile(title: Text('Profile'),leading: Icon(Icons.supervisor_account,color: Color(CustomColors.PRIMARY_COLOR),),)),
              Divider(),
-             InkWell(child: ListTile(title: Text('Blood Request'),leading: Icon(Icons.bloodtype_outlined,color: Color(CustomColors.PRIMARY_COLOR)),)),
+             InkWell(
+                 onTap: (){
+                   Navigator.pop(context);
+                   Navigator.pushNamed(context, Routers.DONOR_REQUESTS);
+                 },
+                 child: ListTile(title: Text('Blood Request'),leading: Icon(Icons.bloodtype_outlined,color: Color(CustomColors.PRIMARY_COLOR)),)),
              Divider(),
              InkWell(
                  onTap: ()async{
@@ -436,5 +477,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return placeMark[0];
   }
 
+  Stream getAvailableDonors()async*{
+
+    List<dynamic> list = await getFunction('getAvailableDonors',web3client!,[]);
+    var response = await getActiveDonorImages(context);
+    List<dynamic> listMap = jsonDecode(response);
+    images = listMap.map((e) => SnapShot(id: '', screenShot: e['images'], location: '', reason: '', date: '')).toList();
+    yield list[0];
+  }
 
 }
+

@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:blood_bank/logic/contract_linking.dart';
+import 'package:blood_bank/logic/snapshot_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -25,6 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Client? httpClient;
   Web3Client? web3client;
+  SharedPreferences? toggleShared;
+  int toggle = 0;
 
   String rpcUrl = 'http://192.168.100.36:7545';
 
@@ -32,9 +36,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     httpClient = Client();
     web3client = Web3Client(rpcUrl, httpClient!);
+    preference();
     // TODO: implement initState
     super.initState();
-    getAvailable();
   }
 
   @override
@@ -135,6 +139,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
                     Text('Email',style: TextStyle(color: Colors.grey),),
+                    SizedBox(height: myHeight/30,),
+                    FutureBuilder<User>(
+                      future: getUser(),
+                      builder: (context,snapshot){
+                        if(snapshot.hasData){
+                          return Text('${snapshot.data!.number}',style: TextStyle(fontSize: myWidth/20));
+                        }else{
+                          return Shimmer.fromColors(child: Text('Contact',style: TextStyle(fontSize: myWidth/20)), baseColor: Colors.grey, highlightColor: Colors.white);
+                        }
+                      },
+                    ),
+                    Text('Contact No:-',style: TextStyle(color: Colors.grey),),
                   ],
                 ),
               ),
@@ -149,16 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Padding(
                         padding: EdgeInsets.only(left: myWidth/30),
-                        child: InkWell(
-                            onTap: ()async{
-                              print('yes');
-                              SharedPreferences shared = await SharedPreferences.getInstance();
-                              String? user = shared.getString('user');
-                              Map<String,dynamic> userMap = jsonDecode(user!);
-
-                              await setAvaibility(userMap['_id'], web3client!);
-                            },
-                            child: Text('Available to donate',style: TextStyle(fontSize: myWidth/20),)),
+                        child: Text('Available to donate',style: TextStyle(fontSize: myWidth/20),),
                       ),
                       ToggleSwitch(
                         customWidths: [70.0, 50.0],
@@ -169,7 +176,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         inactiveFgColor: Colors.white,
                         totalSwitches: 2,
                         labels: ['YES', 'No'],
+                        initialLabelIndex: toggle,
                         onToggle: (index) async{
+                            if(index == 0){
+                              if(toggle == 0){
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You are Aready Available for Donate'),backgroundColor: Color(CustomColors.PRIMARY_COLOR),));
+                              }else{
+                                toggle = index!;
+                                toggleShared!.setInt('toggle', index);
+                                getUser().then((userValue)async{
+                                  print('i is ${userValue.sId}');
+                                  setAvaibility(userValue.sId!, web3client!).then((value)async{
+                                    await uploadDonorImages(userValue.sId!,context);
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Now Available for Donate'),backgroundColor: Color(CustomColors.PRIMARY_COLOR),));
+                                  });
+                                });
+                              }
+                            }else{
+                              if(toggle == 1){
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You are Already not Available for Donate'),backgroundColor: Color(CustomColors.PRIMARY_COLOR),));
+                              }else{
+                                toggle = index!;
+                                toggleShared!.setInt('toggle', index);
+                                getUser().then((userValue)async{
+                                  removeAvailbility(userValue.sId!, web3client!).then((value)async{
+                                    await deleteActiveDonor(userValue.sId!, context);
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Not Available for donate'),backgroundColor: Color(CustomColors.PRIMARY_COLOR)));
+                                  });
+                                });
+                              }
+                            }
                         },
                       ),
                     ],
@@ -201,14 +237,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return placeMark[0];
   }
 
-  void getAvailable()async{
+  void preference()async{
 
-    SharedPreferences shared = await SharedPreferences.getInstance();
-    String? user = shared.getString('user');
-    Map<String,dynamic> userMap = jsonDecode(user!);
+    toggleShared = await SharedPreferences.getInstance();
 
-    List<dynamic> available = await getFunction('getAvailableDonors', web3client!, []);
-    print('donors is ${available}');
+    if(toggleShared!.getInt('toggle') == null){
+      toggleShared!.setInt('toggle', 0);
+      setState(() {
+        toggle = 0;
+        getUser().then((userValue)async{
+          setAvaibility(userValue.sId!, web3client!).then((value)async{
+            dynamic i = await uploadDonorImages(userValue.sId!,context);
+            print('i is ${i}');
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Now Available for Donate'),backgroundColor: Color(CustomColors.PRIMARY_COLOR),));
+          });
+        });
+      });
+    }else{
+      if(toggleShared!.getInt('toggle') == 0){
+        setState(() {
+          toggle = 0;
+        });
+      }else{
+        setState(() {
+          toggle = 1;
+        });
+      }
+    }
+
   }
 
 }

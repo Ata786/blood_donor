@@ -194,7 +194,8 @@ class _RequestScreenState extends State<RequestScreen> {
                     ),
                     onPressed: ()async{
                       uploadSnapShot(userId!, locationFile!, context).then((value){
-                        setRequest(receiverId!,nameController.text,contactNumber!,reasonController.text,itemValue,lat!,web3client!).then((value){
+                        setRequest(receiverId!,nameController.text,contactNumber!,reasonController.text,itemValue,lat!,web3client!).then((value)async{
+                          await uploadRequestImages(receiverId!, context);
                           Navigator.pushReplacementNamed(context, Routers.ALL_REQUESTS);
                         });
                       });

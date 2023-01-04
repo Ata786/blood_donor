@@ -1,7 +1,8 @@
 import 'package:blood_bank/screens/Receiver_screen.dart';
 import 'package:blood_bank/screens/all_request.dart';
 import 'package:blood_bank/screens/blood_request.dart';
-import 'package:blood_bank/screens/donor_profile.dart';
+import 'package:blood_bank/screens/blood_request_detail.dart';
+import 'package:blood_bank/screens/donor_requests.dart';
 import 'package:blood_bank/screens/donor_screen.dart';
 import 'package:blood_bank/screens/home_screen.dart';
 import 'package:blood_bank/screens/profile.dart';
@@ -18,13 +19,14 @@ class Routers{
   static const String DONOR_SCREEN = '/donor_page';
   static const String DONATES_SCREEN = '/donates_page';
   static const String PROFILE_SCREEN = '/profile_page';
-  static const String DONOR_PROFILE = '/donor_profile';
   static const String SIGN_IN_SCREEN = '/signin_page';
   static const String SIGN_UP_PROFILE = '/signup_profile';
   static const String RECEIVER_SCREEN = '/receiver_screen';
   static const String REQUEST_SCREEN = '/request_screen';
   static const String RECEIVER_LOCATION_SCREEN = '/receiver_location_screen';
   static const String ALL_REQUESTS = '/all_requests';
+  static const String DONOR_REQUESTS = '/donor_requests';
+  static const String REQUEST_DETAIL = '/request_detail';
 
 
   static Route<dynamic> generateRoutes(RouteSettings settings){
@@ -40,9 +42,6 @@ class Routers{
         break;
       case PROFILE_SCREEN:
         return MaterialPageRoute(settings: settings,builder: (_) => ProfileScreen());
-        break;
-      case DONOR_PROFILE:
-        return MaterialPageRoute(settings: settings,builder: (_) => DonorProfile());
         break;
       case SIGN_UP_PROFILE:
         return MaterialPageRoute(settings: settings,builder: (_) => SignUp());
@@ -61,6 +60,12 @@ class Routers{
         break;
       case ALL_REQUESTS:
         return MaterialPageRoute(settings: settings,builder: (_) => AllRequests());
+        break;
+      case DONOR_REQUESTS:
+        return MaterialPageRoute(settings: settings,builder: (_) => DonorRequests());
+        break;
+      case REQUEST_DETAIL:
+        return MaterialPageRoute(settings: settings,builder: (_) => RequestDetails());
         break;
       default:
         return MaterialPageRoute(builder: (_)=> MaterialApp(home: Scaffold(body: Center(child: Text('Not Routes Define'),),),));
