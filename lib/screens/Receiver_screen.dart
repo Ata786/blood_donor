@@ -11,6 +11,9 @@ import 'package:shimmer/shimmer.dart';
 import 'package:web3dart/web3dart.dart';
 import '../Pages.dart';
 import '../colors.dart';
+import '../logic/contract_linking.dart';
+import '../logic/snapshot_image.dart';
+import '../model/Request.dart';
 import '../model/User.dart';
 
 class ReceiverScreen extends ConsumerStatefulWidget {
@@ -28,6 +31,10 @@ class _ReceiverScreenState extends ConsumerState<ReceiverScreen> with TickerProv
   GoogleSignIn goolgeSignIn = GoogleSignIn();
   Client? httpClient;
   Web3Client? web3client;
+  List<SnapShot>? images;
+  List<Notify> requests = [];
+  User? userData;
+  Future<List<Notify>>? futureData;
 
   String rpcUrl = 'http://192.168.100.36:7545';
 
@@ -37,12 +44,14 @@ class _ReceiverScreenState extends ConsumerState<ReceiverScreen> with TickerProv
     web3client = Web3Client(rpcUrl, httpClient!);
     // TODO: implement initState
     super.initState();
+    futureData = notifyReceiver();
   }
 
   @override
   Widget build(BuildContext context) {
     double myHeight = MediaQuery.of(context).size.height;
     double myWidth = MediaQuery.of(context).size.width;
+
     return SafeArea(
       child: Scaffold(
         drawerEnableOpenDragGesture: false,
@@ -257,64 +266,72 @@ class _ReceiverScreenState extends ConsumerState<ReceiverScreen> with TickerProv
                         child: Padding(padding: EdgeInsets.only(left: 20),child: Text('Active Donors',style: TextStyle(fontSize: myWidth/20),),),),
                       SizedBox(height: myHeight/30,),
                       Container(
-                        child: ListView.builder(
-                            physics: NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            itemCount: 20,
-                            itemBuilder: (context,index){
-                              return Container(
-                                margin: EdgeInsets.only(left: myWidth/30,right: myWidth/30),
-                                height: myHeight/10,
-                                width: myWidth,
-                                child: Card(
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.all(Radius.circular(10.0))
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        margin: EdgeInsets.only(left: myWidth/30),
-                                        height: (myHeight/10)/1.5,
-                                        width: myWidth/7,
-                                        decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(myWidth/50)
-                                            ),
-                                            image: DecorationImage(
-                                                fit: BoxFit.cover,
-                                                image: NetworkImage('https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=465&q=80')
-                                            )
+                        child: StreamBuilder(
+                          stream: getAvailableDonors(),
+                          builder: (context,snapshot){
+                            if(snapshot.hasData){
+                              return ListView.builder(
+                                  physics: NeverScrollableScrollPhysics(),
+                                  shrinkWrap: true,
+                                  itemCount: snapshot.data.length,
+                                  itemBuilder: (context,index){
+                                    return Container(
+                                      margin: EdgeInsets.only(left: myWidth/30,right: myWidth/30),
+                                      height: myHeight/10,
+                                      width: myWidth,
+                                      child: Card(
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.all(Radius.circular(10.0))
                                         ),
-                                      ),
-                                      SizedBox(width: myWidth/30,),
-                                      Container(
-                                        width: myWidth/1.8,
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.center,
                                           children: [
-                                            Text('ATA-UR-REHMAN',style: TextStyle(fontSize: myWidth/23),),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.location_on),
-                                                Text('Location')
-                                              ],
-                                            )
+                                            Container(
+                                              margin: EdgeInsets.only(left: myWidth/30),
+                                              height: (myHeight/10)/1.5,
+                                              width: myWidth/7,
+                                              decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.all(
+                                                      Radius.circular(myWidth/50)
+                                                  ),
+                                                  image: DecorationImage(
+                                                      fit: BoxFit.cover,
+                                                      image: NetworkImage('${images![index].screenShot}')
+                                                  )
+                                              ),
+                                            ),
+                                            SizedBox(width: myWidth/30,),
+                                            Container(
+                                              width: myWidth/1.8,
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text('${snapshot.data[index][1]}',style: TextStyle(fontSize: myWidth/23),),
+                                                  Row(
+                                                    children: [
+                                                      Text('${snapshot.data[index][3]}')
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                            Spacer(),
+                                            Container(
+                                              width: myWidth/7,
+                                              child: Center(child: Text('Active',style: TextStyle(color: Colors.red,fontWeight: FontWeight.w900),),),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      Spacer(),
-                                      Container(
-                                        width: myWidth/7,
-                                        child: Center(child: Text('Active',style: TextStyle(color: Colors.red,fontWeight: FontWeight.w900),),),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }),
+                                    );
+                                  });
+                            }else{
+                              return Center(child: CircularProgressIndicator(color: Color(CustomColors.PRIMARY_COLOR),),);
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -330,16 +347,58 @@ class _ReceiverScreenState extends ConsumerState<ReceiverScreen> with TickerProv
               children: [
                 Container(
                   height: myHeight/1.3,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        SizedBox(height: myHeight/50,),
-                        Text(
-                            'Notifications',
-                            style: TextStyle(fontSize: myWidth/15)
-                        ),
-                      ],
-                    ),
+                  child: Column(
+                    children: [
+                      SizedBox(height: myHeight/50,),
+                      Text(
+                          'Notifications',
+                          style: TextStyle(fontSize: myWidth/15)
+                      ),
+                      Divider(
+                        color: Colors.grey,
+                      ),
+                      Container(
+                        height: myHeight/1.5,
+                        child: FutureBuilder<List<Notify>>(
+                                future: futureData,
+                                builder: (context,snapshot2){
+                                  if(snapshot2.hasData){
+                                    return userData!.sId == snapshot2.data![0].receiverId ? ListView.builder(
+                                        itemCount: snapshot2.data!.length,
+                                        itemBuilder: (context,index){
+                                          return Column(
+                                            children: [
+                                              Padding(
+                                                padding: EdgeInsets.only(left: 10,right: 10,top: 10) ,
+                                                child: Text('Blood Donor confirm his blood donation says, ${snapshot2.data![index].name} has donated his blood. When you receive blood then click on received button and tell donor detail for confirmation.',style: TextStyle(color: Colors.black54),),
+                                              ),
+                                              InkWell(
+                                                onTap: (){
+                                                  Navigator.pop(context);
+                                                  Navigator.pushNamed(context, Routers.RECEIVED_DETAIL,
+                                                      arguments: {
+                                                    'donorId': snapshot2.data![index].donorId,
+                                                    'receiverId': snapshot2.data![index].receiverId,
+                                                      });
+                                                },
+                                                child: Container(
+                                                  height: myHeight/18,
+                                                  child: Card(
+                                                    elevation: 2,
+                                                    child: Center(child: Text('Received'),),
+                                                  ),
+                                                ),
+                                              )
+                                            ],
+                                          );
+                                        }) : Text('');
+                                  }else{
+                                    return Text('');
+                                  }
+                                },
+                              ),
+                      ),
+                    ],
                   )
                 ),
                 Divider(
@@ -384,7 +443,6 @@ class _ReceiverScreenState extends ConsumerState<ReceiverScreen> with TickerProv
 
     SharedPreferences shared = await SharedPreferences.getInstance();
 
-    User? userData;
     String? user = shared.getString('user');
     if(user == null){
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('User not found')));
@@ -398,5 +456,38 @@ class _ReceiverScreenState extends ConsumerState<ReceiverScreen> with TickerProv
     return userData!;
   }
 
+  Stream getAvailableDonors()async*{
+
+    List<dynamic> list = await getFunction('getAvailableDonors',web3client!,[]);
+    var response = await getActiveDonorImages(context);
+    List<dynamic> listMap = jsonDecode(response);
+    images = listMap.map((e) => SnapShot(id: '', screenShot: e['images'], location: '', reason: '', date: '')).toList();
+    yield list[0];
+  }
+
+  Future<List<Notify>> notifyReceiver()async{
+
+    User user = await getReceiverData();
+    var response = await getReceiverNotify(user.sId!, context);
+    Map<String,dynamic> data = jsonDecode(response);
+    requests.add(Notify.fromJson(data));
+    return requests;
+  }
+}
+
+class Notify{
+
+  String? receiverId,donorId,name,email;
+
+  Notify({this.receiverId,this.donorId,this.name,this.email});
+
+  factory Notify.fromJson(Map<String,dynamic> map){
+    return Notify(
+        receiverId: map['receiverId'],
+        donorId: map['donorId'],
+        name: map['name'],
+        email: map['email'],
+    );
+  }
 
 }

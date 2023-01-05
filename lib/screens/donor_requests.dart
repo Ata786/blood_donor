@@ -6,6 +6,7 @@ import 'package:blood_bank/model/Request.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web3dart/web3dart.dart';
 import 'package:url_launcher/url_launcher.dart' as UrlLauncher;
 import '../Pages.dart';
@@ -102,8 +103,11 @@ class _DonorRequestsState extends State<DonorRequests> {
                                 children: [
                                   Expanded(
                                       child: InkWell(
-                                        onTap: (){
-
+                                        onTap: ()async{
+                                          SharedPreferences shared = await SharedPreferences.getInstance();
+                                          String? user = shared.getString('user');
+                                          Map<String,dynamic> userMap = jsonDecode(user!);
+                                         await sendNotifyData(snapshot.data[index][0], userMap['_id'], userMap['name'], userMap['email'], context);
                                         },
                                         child: Container(
                                     child: Center(

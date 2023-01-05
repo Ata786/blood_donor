@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../model/Received_details.dart';
+
 
 Future uploadSnapShot(String id,File file,BuildContext context)async{
 
@@ -143,6 +145,66 @@ Future getRequestImages(BuildContext context)async{
   }
 
 }
+
+Future sendNotifyData(String receiverId,String donorId,String name,String email,BuildContext context)async{
+
+  var res = await http.post(Uri.parse('http://192.168.100.36:5000/api/notifyDonor'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(<String, String>{
+      'receiverId': receiverId,
+      'donorId': donorId,
+      'name': name,
+      'email': email
+    }),
+  );
+
+
+  if(res.statusCode == 200){
+    return res.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${res.statusCode}')));
+  }
+
+}
+
+Future getReceiverNotify(String receiverId,BuildContext context)async{
+
+  var response = await http.get(Uri.parse('http://192.168.100.36:5000/api/notifyReceiver/${receiverId}'));
+
+  if (response.statusCode == 200) {
+    return response.body;
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${response.statusCode}')));
+  }
+
+}
+
+
+// receivedDetail
+
+Future sendReceiverDetails(ReceivedDetail receivedDetails,BuildContext context)async{
+
+  var res = await http.post(Uri.parse('http://192.168.100.36:5000/api/receivedDetail'),
+    headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+    body: jsonEncode(receivedDetails.toJson()),
+  );
+
+
+  if(res.statusCode == 200){
+    return res.body;
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('error is ${res.statusCode}')));
+  }
+
+}
+
 
 String getCurrentDate() {
   var date = DateTime.now().toString();
